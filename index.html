@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rodičia U12</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1">
+<link rel="apple-touch-icon-precomposed" href="apple-touch-icon.png?v=1">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=1">
+<meta name="apple-mobile-web-app-title" content="Rodičia U12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1F8B3F">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;min-height:100%}
+  /* KĽÚČ (fix bieleho pruhu dole): body MUSÍ mať min-height:100vh (NIE len height:100%).
+     Na iOS PWA height:100% = bezpečný viewport BEZ spodnej home-indicator safe-area →
+     body gradient (= canvas, z ktorého iOS maľuje safe-area) tam nesiaha → biely pruh.
+     100vh = veľký viewport vrátane safe-area → gradient pokryje aj home-indicator.
+     Zhodné s trener launcherom (referencia bez pruhu). ŽIADNY html background (canvas = body). */
+  body{color:#fff;font-family:'Sora',-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;min-height:100vh;
+    /* Splash-zladený hĺbkový gradient (2 tmavé rohy + svetlý stred) — ten istý ako #splash → seamless strip */
+    background:
+      radial-gradient(110% 75% at 16% 3%, rgba(0,0,0,.24), rgba(0,0,0,0) 44%),
+      radial-gradient(110% 75% at 84% 99%, rgba(0,0,0,.22), rgba(0,0,0,0) 44%),
+      radial-gradient(120% 90% at 50% 48%, rgba(255,255,255,.06), rgba(255,255,255,0) 55%),
+      linear-gradient(168deg,#134E27 0%,#1A7236 30%,#1F8B3F 58%,#2B9C49 100%);
+    background-repeat:no-repeat}
+    /* pozn.: background-attachment:fixed ODSTRÁNENÝ — iOS Safari ho v štandalone PWA nevykresľoval v spodnej safe-area (home-indicator) → biely pruh. Trener launcher (referencia bez pruhu) ho tiež nemá. */
+
+  /* ===== C1 LANDING (bežné Safari / nie standalone) ===== */
+  #landing{display:flex;flex-direction:column;align-items:center;text-align:center;
+    min-height:100vh;min-height:100svh;
+    padding:calc(env(safe-area-inset-top) + 6vh) 22px calc(env(safe-area-inset-bottom) + 20px)}
+  .ltile{width:90px;height:90px;border-radius:21px;box-shadow:0 8px 22px rgba(0,0,0,.32)}
+  #landing h1{font-size:26px;font-weight:800;letter-spacing:-.01em;margin:16px 0 0}
+  .ltag{font-size:14px;opacity:.85;margin-top:7px;font-weight:400}
+  .inst{margin-top:auto;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+    border-radius:18px;padding:16px 17px;width:100%;max-width:360px;backdrop-filter:blur(4px)}
+  .ititle{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:7px;justify-content:center;margin-bottom:13px}
+  .stp{display:flex;align-items:flex-start;gap:11px;text-align:left;margin-bottom:11px}
+  .num{flex:none;width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.2);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .stx{font-size:13px;line-height:1.4;flex:1}.stx b{font-weight:700}
+  .chip{display:inline-flex;align-items:center;background:rgba(255,255,255,.2);border-radius:6px;padding:1px 5px;vertical-align:middle;margin:0 1px}
+  .warn{display:flex;align-items:center;gap:8px;background:rgba(247,181,59,.16);border:1px solid rgba(247,181,59,.4);
+    border-radius:11px;padding:9px 11px;font-size:11.5px;line-height:1.35;color:#FBE3B8;margin-top:4px}
+  .sec{display:inline-block;margin-top:15px;font-size:13.5px;color:rgba(255,255,255,.85);text-decoration:underline;font-weight:600}
+  .ic{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+  .ic.am{stroke:#F7B53B;flex:none}.ic.dots{fill:#fff;stroke:none}
+
+  /* ===== Standalone shell (z plochy) — iframe + splash ===== */
+  /* [v22.146] #appwrap bg ZELENÁ (ako trener) → splash je full green až po spodok (gap pod splashom = zelený, žiadny biely pruh). Horná safe-area = zelená (bg). */
+  #appwrap{position:fixed;inset:0;z-index:1000;display:none;background:#1F8B3F;overflow:hidden;
+    padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+    padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+  /* spodná safe-area (home-indicator) pri REPORTE = biela; splash (position:absolute, z-index:1) ju počas loadingu prekryje → splash ostáva celý zelený. Štruktúra zhodná s trener launcherom (referencia bez bieleho pruhu). */
+  #appwrap::after{content:"";position:absolute;left:0;right:0;bottom:0;height:env(safe-area-inset-bottom,0px);background:transparent;pointer-events:none}
+  /* biely home-indicator pruh AŽ keď je REPORT načítaný (.ready). Počas splashu transparent → presvitá zelený root (žiadny biely pruh v splashi). */
+  #appwrap.ready::after{background:#fff}
+  /* width/height/transform nastavuje JS (fit) — iframe renderuje na DW=980 a škáluje sa na
+     šírku displeja → replikuje GAS-in-Safari prostredie (rovnaká veľkosť ako priamy Safari). */
+  #appframe{display:block;border:0;background:#fff}
+  /* [v22.146b] position:absolute;inset:0 = celý padding-box #appwrap vrátane safe-area regiónu → splash prekryje ::after (biely spodok) = full-bleed zelený splash bez bieleho pruhu. Zhodné s trener (position:fixed presakovalo ::after cez vlastný stacking context na iOS PWA). */
+  #splash{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;color:#fff;font-family:'Sora',-apple-system,sans-serif;
+    transition:opacity .3s;pointer-events:none;
+    background:
+      radial-gradient(110% 75% at 16% 3%, rgba(0,0,0,.24), rgba(0,0,0,0) 44%),
+      radial-gradient(110% 75% at 84% 99%, rgba(0,0,0,.22), rgba(0,0,0,0) 44%),
+      radial-gradient(120% 90% at 50% 48%, rgba(255,255,255,.06), rgba(255,255,255,0) 55%),
+      linear-gradient(168deg,#134E27 0%,#1A7236 30%,#1F8B3F 58%,#2B9C49 100%)}
+  #splash.hide{opacity:0}
+  #splash #spmark{width:84px;height:84px;display:block;transform:translateY(-2vh)}
+  #splash .wmv{display:flex;flex-direction:column;align-items:center;line-height:1;margin-top:20px}
+  #splash .wmv-row{display:flex;font-weight:800;letter-spacing:-.025em;font-size:36px}
+  #splash .wmv .fair{color:#fff}#splash .wmv .play{color:#F7B53B}
+  #splash .wmv-sub{font-weight:600;letter-spacing:.4em;color:rgba(255,255,255,.66);font-size:11px;padding-left:.4em;margin-top:8px}
+  #splash .tagline{color:rgba(255,255,255,.78);font-weight:400;font-size:12.5px;margin-top:17px}
+  html.embed,body.embed{overflow:hidden}
+  html.embed #landing{display:none}
+</style>
+<script>
+  var REPORT="https://script.google.com/macros/s/AKfycbzA5HHxQhLuBfhLqTchelpQuxr9vxmHAtdkf-GbJonzOGJsXVSO9hBhUU9ZAPsdzI-h/exec?view=parent";
+  // [PoC] Spustené z plochy (standalone) → NErobíme cross-origin redirect (ten by vyhodil
+  // appku do Safari s chrome). GAS report vložíme do fullscreen iframe; top-level zostane
+  // na github.io → standalone bez pásov. V bežnom Safari ostáva C1 landing nižšie.
+  (function(){
+    var qs = location.search;
+    var isStandalone = (window.navigator.standalone === true) || /[?&]sa=1/.test(qs);
+    if (!isStandalone) return;  // Safari → landing  (?sa=1 = vynúť standalone shell pre test v Safari)
+    document.documentElement.className += " embed";
+    document.addEventListener("DOMContentLoaded", function(){
+      document.body.className += " embed";
+      var wrap = document.getElementById("appwrap");
+      var frame = document.getElementById("appframe");
+      var splash = document.getElementById("splash");
+      if (!wrap || !frame) return;
+      wrap.style.display = "block";
+      // [PWA-size fix] iframe renderuje na DW=980 (= GAS-Safari šírka, pre ktorú sa parent
+      // --fit kalibruje) a CSS transformom ho zmenšíme na šírku displeja → PWA má rovnakú
+      // (menšiu) veľkosť ako priamy Safari, nie zväčšenú device-width verziu.
+      var dwM = qs.match(/[?&]dw=(\d+)/);
+      var DW = dwM ? parseInt(dwM[1], 10) : 450;  // default 450 = väčší report (Fero overil ?dw=450). ?dw=N override pre ďalší tuning.
+      function fit(){
+        var cs = getComputedStyle(wrap);
+        var padL = parseFloat(cs.paddingLeft)||0, padR = parseFloat(cs.paddingRight)||0;
+        var padT = parseFloat(cs.paddingTop)||0, padB = parseFloat(cs.paddingBottom)||0;
+        var w = wrap.clientWidth - padL - padR, h = wrap.clientHeight - padT - padB;
+        if (!w || !h) return;
+        var s = w / DW;
+        frame.style.width = DW + "px";
+        frame.style.height = (h / s) + "px";
+        frame.style.transformOrigin = "0 0";
+        frame.style.transform = "scale(" + s + ")";
+      }
+      fit();
+      setTimeout(fit, 250); setTimeout(fit, 700);
+      window.addEventListener("load", fit);
+      if (window.visualViewport) window.visualViewport.addEventListener("resize", fit);
+      window.addEventListener("resize", fit);
+      window.addEventListener("orientationchange", function(){ setTimeout(fit, 250); });
+      frame.addEventListener("load", function(){ if (splash) splash.className = "hide"; if (wrap) wrap.classList.add("ready"); if (window.__spi) clearInterval(window.__spi); fit(); });
+      // [v22.144] cache-bust report (client) → vždy čerstvá verzia (server-cache cez scriptVersion ostáva)
+      frame.src = REPORT + "&_cb=" + Date.now();
+    });
+  })();
+</script>
+</head>
+<body>
+  <!-- Standalone: fullscreen iframe shell (skrytý kým JS nezistí standalone) -->
+  <div id="appwrap">
+    <div id="splash">
+      <svg id="spmark" viewBox="0 0 100 100" aria-hidden="true"></svg>
+      <div class="wmv"><div class="wmv-row"><span class="fair">Fair</span><span class="play">Play</span></div><div class="wmv-sub">MANAGER</div></div>
+      <div class="tagline">Férové minúty pre každého</div>
+    </div>
+    <iframe id="appframe" title="U12 — Rodičia" allow="clipboard-write"></iframe>
+  </div>
+
+  <!-- Bežné Safari / Android: C1 landing -->
+  <main id="landing">
+    <img class="ltile" src="apple-touch-icon.png?v=1" alt="U12 Rodičia">
+    <h1>U12 — Rodičia</h1>
+    <div class="ltag">Férové minúty pre každého</div>
+    <div class="inst" id="inst"></div>
+    <a class="sec" id="openLink" href="#">otvor prehľad teraz →</a>
+  </main>
+
+  <!-- flat ikony (sprite) -->
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M8.5 7.5L12 4l3.5 3.5M6 11v8a1 1 0 001 1h10a1 1 0 001-1v-8"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M12 8.5v7M8.5 12h7"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5.2" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="18.8" r="1.7"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></symbol>
+    <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 3v10M8.5 9.5L12 13l3.5-3.5M5 16v3a1 1 0 001 1h12a1 1 0 001-1v-3"/></symbol>
+  </defs></svg>
+
+  <script>
+    /* Splash loader = Fair-ring marka (port marks3.jsx). Oranžový segment obieha, trojuholník
+       statický, pokoj vľavo hore (idx 5). Reduced-motion = statická. */
+    (function(){
+      var mk=document.getElementById('spmark'); if(!mk) return;
+      function pol(cx,cy,r,d){var a=(d-90)*Math.PI/180;return [cx+r*Math.cos(a),cy+r*Math.sin(a)];}
+      function seg(cx,cy,ro,ri,a0,a1){var A=pol(cx,cy,ro,a0),B=pol(cx,cy,ro,a1),C=pol(cx,cy,ri,a1),D=pol(cx,cy,ri,a0),L=(a1-a0)<=180?0:1;
+        return 'M'+A[0].toFixed(2)+' '+A[1].toFixed(2)+' A'+ro+' '+ro+' 0 '+L+' 1 '+B[0].toFixed(2)+' '+B[1].toFixed(2)+' L'+C[0].toFixed(2)+' '+C[1].toFixed(2)+' A'+ri+' '+ri+' 0 '+L+' 0 '+D[0].toFixed(2)+' '+D[1].toFixed(2)+' Z';}
+      var NS='http://www.w3.org/2000/svg',c=50,ro=42,gap=7,st=60,ri=31,REST=5,RING='#FFFFFF',ACC='#F59E0B',S=[];
+      for(var i=0;i<6;i++){var a0=i*st-st/2+gap/2,a1=i*st+st/2-gap/2,p=document.createElementNS(NS,'path');p.setAttribute('d',seg(c,c,ro,ri,a0,a1));S.push(p);mk.appendChild(p);}
+      var tr=document.createElementNS(NS,'polygon');tr.setAttribute('points','64,50 42.5,37.5 42.5,62.5');tr.setAttribute('fill',ACC);tr.setAttribute('stroke',ACC);tr.setAttribute('stroke-width','5.5');tr.setAttribute('stroke-linejoin','round');tr.setAttribute('stroke-linecap','round');mk.appendChild(tr);
+      function paint(k){for(var i=0;i<6;i++)S[i].setAttribute('fill',i===k?ACC:RING);}
+      paint(REST);
+      var red=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if(!red){var k=REST;window.__spi=setInterval(function(){k=(k+1)%6;paint(k);},165);}
+    })();
+
+    /* Adaptívny install návod — presné kroky pre platformu rodiča (iOS/Android),
+       in-app prehliadač (FB/IG…) → „otvor v Safari", inak univerzálny fallback. */
+    (function(){
+      var openLink=document.getElementById('openLink'); if(openLink) openLink.href=REPORT;
+      var box=document.getElementById('inst'); if(!box) return;
+      var ua=navigator.userAgent||'';
+      var isIOS=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+      var isAndroid=/Android/.test(ua);
+      var inApp=/FBAN|FBAV|FB_IAB|Instagram|Line|Twitter|Snapchat|Pinterest|LinkedInApp|MicroMessenger|GSA/i.test(ua);
+      var iosNonSafari=isIOS&&(/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)||inApp);
+      function ic(id,cls){return '<svg class="ic'+(cls?' '+cls:'')+'"><use href="#i-'+id+'"/></svg>';}
+      function chip(id){return '<span class="chip"><svg class="ic'+(id==='dots'?' dots':'')+'" style="width:14px;height:14px"><use href="#i-'+id+'"/></svg></span>';}
+      function step(n,html){return '<div class="stp"><div class="num">'+n+'</div><div class="stx">'+html+'</div></div>';}
+      function warn(html){return '<div class="warn">'+ic('info','am')+'<div>'+html+'</div></div>';}
+      var title='<div class="ititle">'+ic('install')+' Pridaj si to na plochu ako appku</div>';
+      var body;
+      if(iosNonSafari){
+        body=step(1,'Otvor tento odkaz v <b>Safari</b> (z menu '+chip('dots')+' vyber „Otvoriť v Safari")')+
+             step(2,'V Safari ťukni dole <b>Zdieľať</b> '+chip('share')+' → <b>Pridať na plochu</b> '+chip('plus'))+
+             warn('Na iPhone sa appka pridáva na plochu <b>iba zo Safari</b>.');
+      } else if(isIOS){
+        body=step(1,'<b>Dole</b> v lište Safari ťukni ikonu <b>Zdieľať</b> '+chip('share'))+
+             step(2,'Posuň nižšie a vyber <b>Pridať na plochu</b> '+chip('plus'))+
+             warn('Ikona Zdieľať je v <b>spodnej lište prehliadača</b> — nie na tejto stránke.');
+      } else if(isAndroid){
+        body=step(1,'<b>Hore</b> ťukni menu '+chip('dots'))+
+             step(2,'Vyber <b>Pridať na plochu</b> / <b>Inštalovať</b> '+chip('plus'))+
+             warn('Menu nájdeš <b>hore v lište prehliadača</b> — nie na tejto stránke.');
+      } else {
+        body=step(1,'V prehliadači otvor <b>menu</b> — ikona Zdieľať '+chip('share')+' alebo '+chip('dots'))+
+             step(2,'Vyber <b>Pridať na plochu</b> (či <b>Inštalovať</b>) '+chip('plus'))+
+             warn('Menu nájdeš v <b>lište prehliadača</b> (hore alebo dole) — nie na tejto stránke.');
+      }
+      box.innerHTML=title+body;
+    })();
+  </script>
+</body>
+</html>
