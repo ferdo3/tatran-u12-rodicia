@@ -62,8 +62,8 @@
     padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
   /* spodná safe-area (home-indicator) pri REPORTE = biela; splash (position:absolute, z-index:1) ju počas loadingu prekryje → splash ostáva celý zelený. Štruktúra zhodná s trener launcherom (referencia bez bieleho pruhu). */
   #appwrap::after{content:"";position:absolute;left:0;right:0;bottom:0;height:env(safe-area-inset-bottom,0px);background:transparent;pointer-events:none}
-  /* biely home-indicator pruh AŽ keď je REPORT načítaný (.ready). Počas splashu transparent → presvitá zelený root (žiadny biely pruh v splashi). */
-  #appwrap.ready::after{background:#fff}
+  /* home-indicator pruh AŽ keď je REPORT načítaný (.ready), farba = --bg-app rodičovskej appky (#F8F8F4) → splýva s pozadím, žiadny biely pás. Počas splashu transparent → presvitá zelený root. */
+  #appwrap.ready::after{background:#F8F8F4}
   /* width/height/transform nastavuje JS (fit) — iframe renderuje na DW=980 a škáluje sa na
      šírku displeja → replikuje GAS-in-Safari prostredie (rovnaká veľkosť ako priamy Safari). */
   #appframe{display:block;border:0;background:#fff}
